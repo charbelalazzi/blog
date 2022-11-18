@@ -1,0 +1,43 @@
+const express = require("express");
+
+const postsController = require("../controllers/posts");
+
+const router = express.Router();
+
+// Posts Routes
+
+router.get("/posts", postsController.getPosts);
+
+router.get("/post/:postId", postsController.getPost);
+
+router.post("/posts", postsController.postPosts);
+
+router.delete("/post/:postId", postsController.deletePost);
+
+router.put("/post/:postId", postsController.updatePost);
+
+// Comments Routes
+
+router.post("/comment/:postId", postsController.postComment);
+
+router.delete("/comment/:commentId", postsController.deleteComment);
+
+// Categories Routes
+
+router.get("/category", postsController.getCategories);
+
+router.post("/category", postsController.postCategory);
+
+router.delete("/category/:categoryId", postsController.deleteCategory)
+
+// Tags Routes
+
+router.get("/tag", postsController.getTags);
+
+router.post("/tag", postsController.postTag);
+
+router.put("/tag/:tagId", postsController.updateTag);
+
+router.delete("/tag/:tagId", postsController.deleteTag);
+
+module.exports = router;
