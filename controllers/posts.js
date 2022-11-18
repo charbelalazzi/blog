@@ -38,7 +38,7 @@ exports.getPost = async (req, res, next) => {
   }
 };
 
-exports.postPosts = async (req, res, next) => {
+exports.addPosts = async (req, res, next) => {
   const categorieId = req.body.categorie;
   const tagsId = req.body.tags;
   const title = req.body.title;
