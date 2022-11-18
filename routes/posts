@@ -10,7 +10,7 @@ router.get("/posts", postsController.getPosts);
 
 router.get("/post/:postId", postsController.getPost);
 
-router.post("/posts", postsController.postPosts);
+router.post("/posts", postsController.addPosts);
 
 router.delete("/post/:postId", postsController.deletePost);
 
