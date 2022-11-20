@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const postSchema = new Schema(
   {
-    categorie: {
+    category: {
       type: Schema.Types.ObjectId,
       ref: "Categories",
     },

@@ -22,26 +22,9 @@ const commentSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "Post",
   },
-  //   replies: [
-  //     {
-  //       creator: {
-  //         type: Schema.Types.ObjectId,
-  //         required: true,
-  //       },
-  //       content: {
-  //         type: String,
-  //         required: true,
-  //       },
-  //       upVotes: {
-  //         type: Number,
-  //         required: true,
-  //       },
-  //       downVotes: {
-  //         type: Number,
-  //         required: true,
-  //       },
-  //     },
-  //   ],
+  edited: {
+    type: Boolean
+  }
 });
 
 module.exports = mongoose.model("Comments", commentSchema);
