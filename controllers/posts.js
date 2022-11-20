@@ -38,24 +38,23 @@ exports.getPost = async (req, res, next) => {
   }
 };
 
-exports.postPosts = async (req, res, next) => {
-  const categorieId = req.body.categorie;
-  const tagsId = req.body.tags;
-  const title = req.body.title;
-  const content = req.body.content;
+exports.addPosts = async (req, res, next) => {
+  const { categoryId, tagsId, title, content } = req.body;
   const upVotes = 0;
   const downVotes = 0;
   try {
-    const tags = await Tag.find({ _id: { $in: [...tagsId] } });
+    const tags = await Tag.find({ _id: { $in: tagsId } });
     tags.forEach((tag) => {
-      if (tag.categories.includes(categorieId) === false) {
-        const error = newError(tag.content + "cannot be used for this Categorie");
+      if (tag.categories.includes(categoryId) === false) {
+        const error = newError(
+          tag.content + "cannot be used for this Category"
+        );
         error.statusCode = 400;
         throw error;
       }
     });
     const post = new Post({
-      categorie: categorieId,
+      category: categoryId,
       tags: tagsId,
       title: title,
       content: content,
@@ -98,10 +97,7 @@ exports.deletePost = async (req, res, next) => {
 
 exports.updatePost = async (req, res, next) => {
   const postId = req.params.postId;
-  const updatedCategorie = req.body.categorie;
-  const updatedTags = req.body.tags;
-  const updatedTitle = req.body.title;
-  const updatedContent = req.body.content;
+  const { categoryId, tagsId, title, content } = req.body;
   try {
     const post = await Post.findById(postId);
     if (!post) {
@@ -109,10 +105,10 @@ exports.updatePost = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-    post.categorie = updatedCategorie;
-    post.tags = updatedTags;
-    post.title = updatedTitle;
-    post.content = updatedContent;
+    post.category = categoryId;
+    post.tags = tagsId;
+    post.title = title;
+    post.content = content;
     if (req.body.upVote) {
       post.upVotes += 1;
     } else if (req.body.downVote) {
@@ -122,6 +118,40 @@ exports.updatePost = async (req, res, next) => {
     res.status(200).json({
       message: "Post Updated",
       post: post,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getComment = async (req,res,next) =>{
+  const comment = req.params.commentId
+  try{
+    const comment = await Comment.findById(commentId)
+    res.status(200).json({
+      message: "Comment fetched",
+      comments: comment,
+    });
+  }catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+
+exports.getComments = async (req, res, next) => {
+  const postId = req.params.postId;
+  try {
+    const post = await Post.findById(postId);
+    const comments = await Comment.find({ _id: { $in: post.comments } });
+    res.status(200).json({
+      message: "Comments for post fetched",
+      comments: comments,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -162,6 +192,31 @@ exports.postComment = async (req, res, next) => {
   }
 };
 
+exports.updateComment = async (req, res, next) => {
+  const commentId = req.params.commentId;
+  const content = req.body.content;
+  try {
+    const comment = await Comment.findById(commentId);
+    comment.content = content;
+    if (req.body.upVote) {
+      comment.upVotes += 1;
+    } else if (req.body.downVote) {
+      comment.downVotes += 1;
+    }
+    comment.edited = true;
+    await comment.save();
+    res.status(200).json({
+      message: "Comment Updated",
+      comment: comment,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 exports.deleteComment = async (req, res, next) => {
   const commentId = req.params.commentId;
   try {
@@ -186,11 +241,27 @@ exports.deleteComment = async (req, res, next) => {
   }
 };
 
+exports.getCategory = async (req,res,next) => {
+  const categoryId = req.params.categoryId;
+  try {
+    const category = await Category.findById(categoryId)
+    res.status(200).json({
+      message: "fetched category successfully.",
+      category: category,
+    });
+  }catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+}
+
 exports.getCategories = async (req, res, next) => {
   try {
     const categories = await Category.find();
     res.status(200).json({
-      message: "fetched categories successfull.",
+      message: "fetched categories successfully.",
       categories: categories,
     });
   } catch (err) {
@@ -225,6 +296,10 @@ exports.deleteCategory = async (req, res, next) => {
   try {
     await Category.findByIdAndDelete(categoryId);
     await Tag.updateMany({}, { $pull: { categories: { $in: categoryId } } });
+    await Post.updateMany(
+      { category: categoryId },
+      { $unset: { category: 1 } }
+    );
     res.status(200).json({
       message: "Category deleted.",
     });
@@ -235,6 +310,22 @@ exports.deleteCategory = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getTag = async (req,res,next) => {
+  const tagId = req.params.tagId;
+  try{
+    const tag = await Tag.findById(tagId);
+    res.status(200).json({
+      message: "fetched tag successfull.",
+      tag: tag,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+}
 
 exports.getTags = async (req, res, next) => {
   try {
@@ -309,6 +400,7 @@ exports.deleteTag = async (req, res, next) => {
     res.status(200).json({
       message: "Tag deleted.",
     });
+    await Post.updateMany({}, { $pull: { tags: { $in: tagId } } });
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

@@ -1,2 +1,1 @@
-First Step: 
-npm i
+First step: npm i

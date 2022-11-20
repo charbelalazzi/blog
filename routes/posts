@@ -10,27 +10,34 @@ router.get("/posts", postsController.getPosts);
 
 router.get("/post/:postId", postsController.getPost);
 
-router.post("/posts", postsController.postPosts);
+router.post("/posts", postsController.addPosts);
 
 router.delete("/post/:postId", postsController.deletePost);
 
 router.put("/post/:postId", postsController.updatePost);
 
 // Comments Routes
+router.get("/comment/:commentId", postsController.getComment);
+
+router.get("/commentForPost/:postId", postsController.getComments);
 
 router.post("/comment/:postId", postsController.postComment);
 
 router.delete("/comment/:commentId", postsController.deleteComment);
 
+router.put("/comment/:commentId", postsController.updateComment);
+
 // Categories Routes
+router.get("/category/:categoryId", postsController.getCategory);
 
 router.get("/category", postsController.getCategories);
 
 router.post("/category", postsController.postCategory);
 
-router.delete("/category/:categoryId", postsController.deleteCategory)
+router.delete("/category/:categoryId", postsController.deleteCategory);
 
 // Tags Routes
+router.get("/tag/:tagId", postsController.getTag);
 
 router.get("/tag", postsController.getTags);
 
