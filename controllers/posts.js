@@ -4,6 +4,9 @@ const Comment = require("../models/comments");
 const Category = require("../models/categories");
 const Tag = require("../models/tags");
 const { findByIdAndDelete, deleteMany, find } = require("../models/posts");
+const { validationResult } = require("express-validator/check");
+
+// Posts CRUD
 
 exports.getPosts = async (req, res, next) => {
   try {
@@ -25,7 +28,7 @@ exports.getPost = async (req, res, next) => {
   try {
     const post = await Post.findById(postId);
     if (!post) {
-      const error = newError("Could not find Post!");
+      const error = new Error("Could not find Post!");
       error.statusCode = 404;
       throw error;
     }
@@ -39,14 +42,20 @@ exports.getPost = async (req, res, next) => {
 };
 
 exports.addPosts = async (req, res, next) => {
+  const errors = validationResult(req);
   const { categoryId, tagsId, title, content } = req.body;
   const upVotes = 0;
   const downVotes = 0;
   try {
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
     const tags = await Tag.find({ _id: { $in: tagsId } });
     tags.forEach((tag) => {
       if (tag.categories.includes(categoryId) === false) {
-        const error = newError(
+        const error = new Error(
           tag.content + "cannot be used for this Category"
         );
         error.statusCode = 400;
@@ -79,7 +88,7 @@ exports.deletePost = async (req, res, next) => {
   try {
     const post = await Post.findById(postId);
     if (!post) {
-      const error = newError("Could not find Post!");
+      const error = new Error("Could not find Post!");
       error.statusCode = 404;
       throw error;
     }
@@ -96,12 +105,18 @@ exports.deletePost = async (req, res, next) => {
 };
 
 exports.updatePost = async (req, res, next) => {
+  const errors = validationResult(req);
   const postId = req.params.postId;
   const { categoryId, tagsId, title, content } = req.body;
   try {
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
     const post = await Post.findById(postId);
     if (!post) {
-      const error = newError("Could not find Post!");
+      const error = new Error("Could not find Post!");
       error.statusCode = 404;
       throw error;
     }
@@ -127,22 +142,23 @@ exports.updatePost = async (req, res, next) => {
   }
 };
 
-exports.getComment = async (req,res,next) =>{
-  const comment = req.params.commentId
-  try{
-    const comment = await Comment.findById(commentId)
+// Comment CRUD
+
+exports.getComment = async (req, res, next) => {
+  const commentId = req.params.commentId;
+  try {
+    const comment = await Comment.findById(commentId);
     res.status(200).json({
       message: "Comment fetched",
       comments: comment,
     });
-  }catch (err) {
+  } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
     }
     next(err);
   }
 };
-
 
 exports.getComments = async (req, res, next) => {
   const postId = req.params.postId;
@@ -162,12 +178,18 @@ exports.getComments = async (req, res, next) => {
 };
 
 exports.postComment = async (req, res, next) => {
+  const errors = validationResult(req);
   const content = req.body.content;
   const postId = req.params.postId;
   try {
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
     const post = await Post.findById(postId);
     if (!post) {
-      const error = newError("Could not find Post!");
+      const error = new Error("Could not find Post!");
       error.statusCode = 404;
       throw error;
     }
@@ -193,10 +215,21 @@ exports.postComment = async (req, res, next) => {
 };
 
 exports.updateComment = async (req, res, next) => {
+  const errors = validationResult(req);
   const commentId = req.params.commentId;
   const content = req.body.content;
   try {
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
     const comment = await Comment.findById(commentId);
+    if (!comment) {
+      const error = new Error("Could not find comment!");
+      error.statusCode = 404;
+      throw error;
+    }
     comment.content = content;
     if (req.body.upVote) {
       comment.upVotes += 1;
@@ -241,21 +274,57 @@ exports.deleteComment = async (req, res, next) => {
   }
 };
 
-exports.getCategory = async (req,res,next) => {
-  const categoryId = req.params.categoryId;
+// Reply Crud
+
+exports.postReply = async (req, res, next) => {
+  const errors = validationResult(req);
+
+  const commentId = req.params.commentId;
+  const content = req.body.content;
   try {
-    const category = await Category.findById(categoryId)
-    res.status(200).json({
-      message: "fetched category successfully.",
-      category: category,
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
+    const comment = await Comment.findById(commentId);
+    const reply = new Comment({
+      content: content,
+      replyTo: commentId,
+      post: comment.post,
+      upVotes: 0,
+      downVotes: 0,
     });
-  }catch (err) {
+    await reply.save();
+    res.status(201).json({
+      message: "Reply added.",
+      reply: reply,
+    });
+  } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;
     }
     next(err);
   }
-}
+};
+
+// Category CRUD
+
+exports.getCategory = async (req, res, next) => {
+  const categoryId = req.params.categoryId;
+  try {
+    const category = await Category.findById(categoryId);
+    res.status(200).json({
+      message: "fetched category successfully.",
+      category: category,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
 
 exports.getCategories = async (req, res, next) => {
   try {
@@ -273,8 +342,14 @@ exports.getCategories = async (req, res, next) => {
 };
 
 exports.postCategory = async (req, res, next) => {
+  const errors = validationResult(req);
   const content = req.body.content;
   try {
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
     const category = new Category({
       content: content,
     });
@@ -311,9 +386,11 @@ exports.deleteCategory = async (req, res, next) => {
   }
 };
 
-exports.getTag = async (req,res,next) => {
+// Tag CRUD
+
+exports.getTag = async (req, res, next) => {
   const tagId = req.params.tagId;
-  try{
+  try {
     const tag = await Tag.findById(tagId);
     res.status(200).json({
       message: "fetched tag successfull.",
@@ -325,7 +402,7 @@ exports.getTag = async (req,res,next) => {
     }
     next(err);
   }
-}
+};
 
 exports.getTags = async (req, res, next) => {
   try {
@@ -343,6 +420,12 @@ exports.getTags = async (req, res, next) => {
 };
 
 exports.postTag = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed, entered data is incorrect.");
+    error.statusCode = 422;
+    throw error;
+  }
   const content = req.body.content;
   const categoriesIds = [...req.body.categories];
   try {
@@ -364,6 +447,12 @@ exports.postTag = async (req, res, next) => {
 };
 
 exports.updateTag = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed, entered data is incorrect.");
+    error.statusCode = 422;
+    throw error;
+  }
   const tagId = req.params.tagId;
   const removeCategoryId = req.body.removeCategory;
   const addCategoryId = req.body.addCategory;
