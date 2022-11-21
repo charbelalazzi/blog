@@ -3,6 +3,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const postsRoutes = require("./routes/posts");
+const authRoutes = require("./routes/auth")
 const app = express();
 
 app.use(bodyParser.json());
@@ -18,6 +19,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/feed", postsRoutes);
+app.use("/auth",authRoutes);
 
 app.use((error, req, res, next) => {
   console.log(error);
@@ -37,8 +39,4 @@ mongoose
   })
   .catch((err) => {
     const server = console.log(err);
-    const io = require("./socket").init(server);
-    io.on("connected", (socket) => {
-      console.log("Client connected");
-    });
   });

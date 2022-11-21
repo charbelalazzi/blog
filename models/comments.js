@@ -23,8 +23,12 @@ const commentSchema = new Schema({
     ref: "Post",
   },
   edited: {
-    type: Boolean
-  }
+    type: Boolean,
+  },
+  replyTo: {
+    type: Schema.Types.ObjectId,
+    ref: "Comments",
+  },
 });
 
 module.exports = mongoose.model("Comments", commentSchema);
