@@ -4,7 +4,7 @@ const Comment = require("../models/comments");
 const Category = require("../models/categories");
 const Tag = require("../models/tags");
 const { findByIdAndDelete, deleteMany, find } = require("../models/posts");
-const { validationResult } = require("express-validator/check");
+const { postSchema, tagSchema } = require("../helper/validation_schema");
 
 // Posts CRUD
 
@@ -42,19 +42,12 @@ exports.getPost = async (req, res, next) => {
 };
 
 exports.addPosts = async (req, res, next) => {
-  const errors = validationResult(req);
-  const { categoryId, tagsId, title, content } = req.body;
-  const upVotes = 0;
-  const downVotes = 0;
+  const userId = req.userId;
   try {
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
-      error.statusCode = 422;
-      throw error;
-    }
-    const tags = await Tag.find({ _id: { $in: tagsId } });
+    const result = await postSchema.validateAsync(req.body);
+    const tags = await Tag.find({ _id: { $in: result.tagsId } });
     tags.forEach((tag) => {
-      if (tag.categories.includes(categoryId) === false) {
+      if (tag.categories.includes(result.categoryId) === false) {
         const error = new Error(
           tag.content + "cannot be used for this Category"
         );
@@ -63,19 +56,26 @@ exports.addPosts = async (req, res, next) => {
       }
     });
     const post = new Post({
-      category: categoryId,
-      tags: tagsId,
-      title: title,
-      content: content,
-      upVotes: upVotes,
-      downVotes: downVotes,
+      category: result.categoryId,
+      tags: result.tagsId,
+      title: result.title,
+      content: result.content,
+      creator: userId,
+      upVotes: 0,
+      downVotes: 0,
     });
+    if (req.file) {
+      post.image = req.file;
+    }
     await post.save();
     res.status(201).json({
       message: "Post created successfully",
       post: post,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -85,8 +85,14 @@ exports.addPosts = async (req, res, next) => {
 
 exports.deletePost = async (req, res, next) => {
   const postId = req.params.postId;
+  const userId = req.userId;
   try {
     const post = await Post.findById(postId);
+    if (userId != post.creator) {
+      const error = new Error("This user cannot deleete this post");
+      error.statusCode = 422;
+      throw error;
+    }
     if (!post) {
       const error = new Error("Could not find Post!");
       error.statusCode = 404;
@@ -105,25 +111,25 @@ exports.deletePost = async (req, res, next) => {
 };
 
 exports.updatePost = async (req, res, next) => {
-  const errors = validationResult(req);
   const postId = req.params.postId;
-  const { categoryId, tagsId, title, content } = req.body;
+  const userId = req.userId;
   try {
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
+    const post = await Post.findById(postId);
+    if (userId != post.creator) {
+      const error = new Error("This user cannot edit this post");
       error.statusCode = 422;
       throw error;
     }
-    const post = await Post.findById(postId);
+    const result = await postSchema.validateAsync(req.body);
     if (!post) {
       const error = new Error("Could not find Post!");
       error.statusCode = 404;
       throw error;
     }
-    post.category = categoryId;
-    post.tags = tagsId;
-    post.title = title;
-    post.content = content;
+    post.category = result.categoryId;
+    post.tags = result.tagsId;
+    post.title = result.title;
+    post.content = result.content;
     if (req.body.upVote) {
       post.upVotes += 1;
     } else if (req.body.downVote) {
@@ -135,6 +141,9 @@ exports.updatePost = async (req, res, next) => {
       post: post,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -178,15 +187,10 @@ exports.getComments = async (req, res, next) => {
 };
 
 exports.postComment = async (req, res, next) => {
-  const errors = validationResult(req);
-  const content = req.body.content;
   const postId = req.params.postId;
+  const userId = req.userId;
   try {
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
-      error.statusCode = 422;
-      throw error;
-    }
+    const result = await tagSchema.validateAsync(req.body);
     const post = await Post.findById(postId);
     if (!post) {
       const error = new Error("Could not find Post!");
@@ -194,8 +198,9 @@ exports.postComment = async (req, res, next) => {
       throw error;
     }
     const comment = new Comment({
-      content: content,
+      content: result.content,
       post: postId,
+      creator: userId,
       upVotes: 0,
       downVotes: 0,
     });
@@ -207,6 +212,9 @@ exports.postComment = async (req, res, next) => {
       post: post,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -215,22 +223,22 @@ exports.postComment = async (req, res, next) => {
 };
 
 exports.updateComment = async (req, res, next) => {
-  const errors = validationResult(req);
   const commentId = req.params.commentId;
-  const content = req.body.content;
+  const userId = req.userId;
   try {
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
+    const result = await tagSchema.validateAsync(req.body);
+    const comment = await Comment.findById(commentId);
+    if (userId != comment.creator) {
+      const error = new Error("This user cannot edit this comment");
       error.statusCode = 422;
       throw error;
     }
-    const comment = await Comment.findById(commentId);
     if (!comment) {
       const error = new Error("Could not find comment!");
       error.statusCode = 404;
       throw error;
     }
-    comment.content = content;
+    comment.content = result.content;
     if (req.body.upVote) {
       comment.upVotes += 1;
     } else if (req.body.downVote) {
@@ -243,6 +251,9 @@ exports.updateComment = async (req, res, next) => {
       comment: comment,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -252,8 +263,14 @@ exports.updateComment = async (req, res, next) => {
 
 exports.deleteComment = async (req, res, next) => {
   const commentId = req.params.commentId;
+  const userId = req.userId;
   try {
     const comment = await Comment.findById(commentId);
+    if (userId != comment.creator) {
+      const error = new Error("This user cannot delete this comment");
+      error.statusCode = 422;
+      throw error;
+    }
     if (!comment) {
       const error = new Error("Could not find comment!");
       error.statusCode = 404;
@@ -342,16 +359,10 @@ exports.getCategories = async (req, res, next) => {
 };
 
 exports.postCategory = async (req, res, next) => {
-  const errors = validationResult(req);
-  const content = req.body.content;
   try {
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
-      error.statusCode = 422;
-      throw error;
-    }
+    const result = await tagSchema.validateAsync(req.body);
     const category = new Category({
-      content: content,
+      content: result.content,
     });
     await category.save();
     res.status(201).json({
@@ -359,6 +370,9 @@ exports.postCategory = async (req, res, next) => {
       category: category,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -420,18 +434,11 @@ exports.getTags = async (req, res, next) => {
 };
 
 exports.postTag = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed, entered data is incorrect.");
-    error.statusCode = 422;
-    throw error;
-  }
-  const content = req.body.content;
-  const categoriesIds = [...req.body.categories];
   try {
+    const result = await tagSchema.validateAsync(req.body);
     const tag = new Tag({
-      content: content,
-      categories: categoriesIds,
+      content: result.content,
+      categories: result.categoriesIds,
     });
     await tag.save();
     res.status(201).json({
@@ -439,6 +446,9 @@ exports.postTag = async (req, res, next) => {
       tag: tag,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -447,26 +457,19 @@ exports.postTag = async (req, res, next) => {
 };
 
 exports.updateTag = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed, entered data is incorrect.");
-    error.statusCode = 422;
-    throw error;
-  }
   const tagId = req.params.tagId;
-  const removeCategoryId = req.body.removeCategory;
-  const addCategoryId = req.body.addCategory;
   try {
-    if (removeCategoryId) {
+    const result = await tagSchema.validateAsync(req.body);
+    if (result.removeCategoryId) {
       await Tag.updateOne(
         { _id: tagId },
-        { $pull: { categories: { $in: removeCategoryId } } }
+        { $pull: { categories: { $in: result.removeCategoryId } } }
       );
     }
-    if (addCategoryId) {
+    if (result.addCategoryId) {
       await Tag.updateOne(
         { _id: tagId },
-        { $push: { categories: addCategoryId } }
+        { $push: { categories: result.addCategoryId } }
       );
     }
     const tag = await Tag.findById(tagId);
@@ -475,6 +478,9 @@ exports.updateTag = async (req, res, next) => {
       tag: tag,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }

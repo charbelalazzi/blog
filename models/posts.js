@@ -21,17 +21,18 @@ const postSchema = new Schema(
       type: String,
       required: true,
     },
-    // fileAttached: {
-    //   required: false,
-    // },
+    image: {
+      data: Buffer,
+      type: String,
+    },
     // geoLocation: {
     //   type: Geolocation,
     //   required: false,
     // },
-    // creator: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: "User",
-    // },
+    creator: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     comments: [
       {
         type: Schema.Types.ObjectId,

@@ -6,10 +6,10 @@ const commentSchema = new Schema({
     type: String,
     required: true,
   },
-  //   user: {
-  //     type: Schema.Types.ObjectId,
-  //     ref: "User",
-  //   },
+  creator: {
+    type: Schema.Types.ObjectId,
+    ref: "User",
+  },
   upVotes: {
     type: Number,
     required: true,
