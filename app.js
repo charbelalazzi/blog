@@ -1,12 +1,50 @@
+require('dotenv').config()
 const path = require("path");
+const fs = require("fs");
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const postsRoutes = require("./routes/posts");
-const authRoutes = require("./routes/auth")
+const multer = require("multer");
+const authRoutes = require("./routes/auth");
+const categoriesRoutes = require("./categories/categories.controller");
+const commentsRoutes = require("./comments/comments.controller");
+const postsRoutes = require("./posts/posts.controller");
+const tagsRoutes = require("./tags/tags.controller");
+const repliesRoutes = require ("./replies/replies.controller")
+const config = require("./config");
+
 const app = express();
 
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const imagesDir = path.join(__dirname, "/images");
+    if (!fs.existsSync(imagesDir)) {
+      fs.mkdirSync(imagesDir);
+    }
+    cb(null, imagesDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpg" ||
+    file.mimetype === "image/jpeg"
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
+
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(
+  multer({ storage: fileStorage, fileFilter: fileFilter }).single("myImage")
+);
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -18,8 +56,12 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use("/auth", authRoutes);
+app.use("/feed", tagsRoutes);
+app.use("/feed", categoriesRoutes,);
+app.use("/feed", commentsRoutes);
 app.use("/feed", postsRoutes);
-app.use("/auth",authRoutes);
+app.use("/feed", repliesRoutes);
 
 app.use((error, req, res, next) => {
   console.log(error);
@@ -30,11 +72,9 @@ app.use((error, req, res, next) => {
 });
 
 mongoose
-  .connect(
-    "mongodb+srv://CHARBEL:CHARBEL@cluster0.u90hh6c.mongodb.net/?retryWrites=true&w=majority"
-  )
+  .connect(`mongodb://${config.mongo.host}:${config.mongo.port}/${config.mongo.name}`)
   .then((result) => {
-    app.listen(8080);
+    app.listen(config.app.port);
     console.log("Connected!");
   })
   .catch((err) => {

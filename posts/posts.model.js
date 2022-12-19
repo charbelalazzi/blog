@@ -21,23 +21,18 @@ const postSchema = new Schema(
       type: String,
       required: true,
     },
-    // fileAttached: {
-    //   required: false,
-    // },
-    // geoLocation: {
-    //   type: Geolocation,
-    //   required: false,
-    // },
-    // creator: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: "User",
-    // },
-    comments: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
+    image: {
+      data: Buffer,
+      type: String,
+    },
+    loc: {
+      type: { type: String },
+      coordinates: [Number]
+  },
+    creator: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     upVotes: {
       type: Number,
       required: true,
@@ -49,5 +44,5 @@ const postSchema = new Schema(
   },
   { timestamps: true }
 );
-
+// postSchema.index({downVotes: 1})
 module.exports = mongoose.model("Post", postSchema);
