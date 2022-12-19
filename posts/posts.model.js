@@ -25,20 +25,14 @@ const postSchema = new Schema(
       data: Buffer,
       type: String,
     },
-    // geoLocation: {
-    //   type: Geolocation,
-    //   required: false,
-    // },
+    loc: {
+      type: { type: String },
+      coordinates: [Number]
+  },
     creator: {
       type: Schema.Types.ObjectId,
       ref: "User",
     },
-    comments: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
     upVotes: {
       type: Number,
       required: true,
@@ -50,5 +44,5 @@ const postSchema = new Schema(
   },
   { timestamps: true }
 );
-
+// postSchema.index({downVotes: 1})
 module.exports = mongoose.model("Post", postSchema);

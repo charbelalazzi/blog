@@ -1,12 +1,12 @@
 const bcrypt = require("bcrypt");
-const User = require("../models/users");
+const User = require("../users/users.model");
 const jwt = require("jsonwebtoken");
 const { authSchema } = require("../helper/validation_schema");
 
 exports.signup = async (req, res, next) => {
   try {
     const result = await authSchema.validateAsync(req.body);
-    const duplicate = User.find({ email: result.email });
+    const duplicate = await User.findOne({ email: result.email });
     if (duplicate) {
       const error = new Error("Email already in use!");
       error.statusCode = 422;
@@ -52,7 +52,7 @@ exports.login = async (req, res, next) => {
     const token = jwt.sign(
       {
         email: user.email,
-        userId: user._id,
+        userId: user._id.toString(),
       },
       "somesupersecretsecret",
       { expiresIn: "1h" }
@@ -69,3 +69,11 @@ exports.login = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.userVerification = (creator, loggedInUser) => {
+  if (creator !== loggedInUser) {
+    const error = new Error("Could not find post.");
+    error.statusCode = 403;
+    throw error;
+  }
+}

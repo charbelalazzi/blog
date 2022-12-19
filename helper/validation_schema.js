@@ -1,27 +1,28 @@
-const joi = require("joi");
+const Joi  = require("joi");
 
-const authSchema = joi.object({
-  email: joi.string().email().lowercase().required(),
-  password: joi.string().min(6).required(),
-  name: joi.string(),
+const authSchema = Joi.object({
+  email: Joi.string().email().lowercase().required(),
+  password: Joi.string().min(6).required(),
+  name: Joi.string(),
 });
 
-const postSchema = joi.object({
-  title: joi.string().trim(),
-  content: joi.string().trim().min(8),
-  categoryId: joi.allow(),
-  tagsId: joi.allow(),
-  upVote: joi.allow(),
-  downVote: joi.allow(),
+const postSchema = Joi.object({
+  title: Joi.string().trim(),
+  content: Joi.string().trim().min(8),
+  categoryId: Joi.allow(),
+  tagsId: Joi.array().unique().allow(),
+  loc: Joi.allow(),
+  upVote: Joi.allow(),
+  downVote: Joi.allow(),
 });
 
-const tagSchema = joi.object({
-  content: joi.string().trim(),
-  catrgoriesId: joi.allow(),
-  removeCategoryId: joi.allow(),
-  addCategoryId: joi.allow(),
-  upVote: joi.allow(),
-  downVote: joi.allow(),
+const tagSchema = Joi.object({
+  content: Joi.string().trim(),
+  categoriesId: Joi.array().unique().allow(),
+  removeCategoryId: Joi.array().unique().allow(),
+  addCategoryId: Joi.array().unique().allow(),
+  upVote: Joi.allow(),
+  downVote: Joi.allow(),
 });
 
 module.exports = {
