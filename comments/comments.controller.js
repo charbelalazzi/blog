@@ -67,8 +67,8 @@ const updateComment = async (req, res, next) => {
 
   try {
     const result = await tagSchema.validateAsync(req.body);
-    const {content, upVote, downVote} = result
-    const comment = await commentService.updateComment(commentId, userId, content, upVote, downVote);
+    const {content} = result
+    const comment = await commentService.updateComment(commentId, userId, content);
     res.status(200).json({
       message: "Comment Updated",
       comment: comment,
@@ -98,17 +98,19 @@ const deleteComment = async (req, res, next) => {
   }
 };
 
-const postReply =  async (req, res, next) => {
-  const commentId = req.params.commentId;
-  const content = req.body.content;
+const voteComment = async (req, res, next) => {
+  const { commentId } = req.params;
+  const { upVote, downVote } = req.body;
   try {
-    const result = await tagSchema.validateAsync(req.body);
-    const reply = await commentService.postReply()
-    res.status(201).json({
-      message: "Reply added.",
-      reply: reply,
+    const comment = await commentService.voteComment(commentId, upVote, downVote);
+    res.status(200).json({
+      message: "Comment Updated",
+      comment: comment,
     });
   } catch (err) {
+    if (err.isJoi === true) {
+      err.statusCode = 422;
+    }
     if (!err.statusCode) {
       err.statusCode = 500;
     }
@@ -122,9 +124,10 @@ router.get(`${param}ForPost/:postId`, getCommentsForPost);
 
 router.post(`${param}/:postId`, isAuth, postComment);
 
-router.put(`${param}/:commentId`, isAuth, updateComment);
-
 router.delete(`${param}/:commentId`, isAuth, deleteComment);
 
+router.put(`${param}/:commentId`, isAuth, updateComment);
+
+router.put(`${param}Vote/:commentId`, isAuth, voteComment);
 
 module.exports = router;

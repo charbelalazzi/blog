@@ -117,9 +117,10 @@ const updatePost = async (req, res, next) => {
 };
 
 const votePost = async (req, res, next) => {
+  const { postId } = req.params;
   const { upVote, downVote } = req.body;
   try {
-    const post = await postsService.votePost(upVote, downVote);
+    const post = await postsService.votePost(postId, upVote, downVote);
     res.status(200).json({
       message: "Post Updated",
       post: post,

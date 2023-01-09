@@ -9,7 +9,7 @@ const {
   prepareSearch,
 } = require("../helper/helping_functions");
 
-exports.getPosts = (search, page) => {
+exports.getPosts = (search, page = 1) => {
   const postsToSkip = 10 * (parseInt(page) - 1);
   const searchFields = ["title"];
   const aggregate = Post.aggregate([
@@ -34,7 +34,7 @@ exports.getPosts = (search, page) => {
       },
     },
     {
-      $unwind: "$comments",
+      $unwind: { path: "$comments", preserveNullAndEmptyArrays: true },
     },
     {
       $lookup: {

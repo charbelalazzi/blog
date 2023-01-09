@@ -35,24 +35,25 @@ exports.postReply = async (commentId, userId, content) => {
   return reply.save();
 };
 
-exports.updateReply = async (
-  replyId,
-  userId,
-  content,
-  upVote = false,
-  downVote = false
-) => {
+exports.updateReply = async (replyId, userId, content) => {
   const reply = await this.getReply(replyId);
-  if (!upVote && !downVote){
-    userValidation(userId, reply.creator)
-  }
+  userValidation(userId, reply.creator);
   reply.content = content;
+  reply.edited = true;
+  return reply.save();
+};
+
+exports.voteReply = async (replyId, upVote = false, downVote = false) => {
+  const reply = await this.getReply(replyId);
+  if ((!upVote && !downVote) || (upVote && downVote)) {
+    return;
+  }
   if (upVote) {
     reply.upVotes += 1;
-  } else if (downVote) {
+  }
+  if (downVote) {
     reply.downVotes += 1;
   }
-  reply.edited = true;
   return reply.save();
 };
 
