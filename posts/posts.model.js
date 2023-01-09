@@ -25,10 +25,6 @@ const postSchema = new Schema(
       data: Buffer,
       type: String,
     },
-    loc: {
-      type: { type: String },
-      coordinates: [Number]
-  },
     creator: {
       type: Schema.Types.ObjectId,
       ref: "User",

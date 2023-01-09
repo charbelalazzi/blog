@@ -4,22 +4,61 @@ const { query } = require("express");
 const { getCategory } = require("../categories/categories.service");
 const { getOneTag } = require("../tags/tags.service");
 const Tag = require("../tags/tags.model");
-const {userValidation} = require("../helper/helping_functions")
+const {
+  userValidation,
+  prepareSearch,
+} = require("../helper/helping_functions");
 
-exports.getPosts = () => {
-  // const searchableFields = ['field1', 'field2'];
-  // const orOperation = [];
-  // searchableFields.forEach(field => {
-  //   orOperation.push({
-  //     $regex: {
-  //       value: query.search,
-  //       options:'i'
-  //     }
-  //   })
-  // });
-  // add pagination, sort, search
-  // return Post.find({ $or: orOperation});
-  return Post.find();
+exports.getPosts = (search, page) => {
+  const postsToSkip = 10 * (parseInt(page) - 1);
+  const searchFields = ["title"];
+  const aggregate = Post.aggregate([
+    {
+      $match: prepareSearch(search, searchFields),
+    },
+    {
+      $sort: { upVotes: -1 },
+    },
+    {
+      $skip: postsToSkip,
+    },
+    {
+      $limit: 10,
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "_id",
+        foreignField: "post",
+        as: "comments",
+      },
+    },
+    {
+      $unwind: "$comments",
+    },
+    {
+      $lookup: {
+        from: "comments",
+        localField: "comments._id",
+        foreignField: "replyTo",
+        as: "comments.replies",
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        title: { $first: "$title" },
+        content: { $first: "$content" },
+        upVotes: { $first: "$upVotes" },
+        downVotes: { $first: "$downVotes" },
+        creator: { $first: "$creator" },
+        createdAt: { $first: "$createdAt" },
+        updatedAt: { $first: "$updatedAt" },
+        comments: { $push: "$comments" },
+      },
+    },
+  ]);
+  return aggregate;
 };
 
 exports.getOnePost = async (postId) => {
@@ -69,7 +108,7 @@ exports.addPosts = async (
 
 exports.deletePost = async (postId, userId) => {
   const post = await this.getOnePost(postId);
-  // userValidation(userId, post.creator)
+  userValidation(userId, post.creator);
   await Comment.deleteMany({ post: postId });
   await Post.deleteOne({ _id: postId });
 };
@@ -80,17 +119,27 @@ exports.updatePost = async (
   tagsId,
   title,
   content,
-  upVote = false,
-  downVote = false
+  userId
 ) => {
   const post = await this.getOnePost(postId);
+  console.log(userId, post.creator);
+  userValidation(userId, post.creator);
   post.category = categoryId;
   post.tags = tagsId;
   post.title = title;
   post.content = content;
+  return post.save();
+};
+
+exports.votePost = async (postId, upVote = false, downVote = false) => {
+  const post = await this.getOnePost(postId);
+  if ((!upVote && !downVote) || (upVote && downVote)) {
+    return;
+  }
   if (upVote) {
     post.upVotes += 1;
-  } else if (downVote) {
+  }
+  if (downVote) {
     post.downVotes += 1;
   }
   return post.save();
