@@ -112,8 +112,8 @@ router.get(`${param}ForComment/:commentId`, getRepliesForComment);
 
 router.post(`${param}/:commentId`, isAuth, postReply);
 
-router.put(`${param}/:replyId`, updateReply);
+router.put(`${param}/:replyId`, isAuth, updateReply);
 
-router.delete(`${param}/:replyId`, deleteReply);
+router.delete(`${param}/:replyId`, isAuth, deleteReply);
 
 module.exports = router;

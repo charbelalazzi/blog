@@ -11,7 +11,6 @@ const postSchema = Joi.object({
   content: Joi.string().trim().min(8),
   categoryId: Joi.allow(),
   tagsId: Joi.array().unique().allow(),
-  loc: Joi.allow(),
   upVote: Joi.allow(),
   downVote: Joi.allow(),
 });

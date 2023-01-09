@@ -1,6 +1,6 @@
-const Post = require("../posts/posts.model");
 const Comment = require("../comments/comments.model");
 const { getComment } = require("../comments/comments.service");
+const { userValidation } = require("../helper/helping_functions");
 
 exports.getReply = async (replyId) => {
   const reply = await Comment.findById(replyId);
@@ -19,11 +19,11 @@ exports.getRepliesForComment = async (commentId) => {
 };
 
 exports.postReply = async (commentId, userId, content) => {
-  const comment =  await getComment(commentId);
+  const comment = await getComment(commentId);
   if (comment.replyTo) {
-    const error = new Error('Cannot reply to a reply')
+    const error = new Error("Cannot reply to a reply");
     error.statusCode = 422;
-    throw error
+    throw error;
   }
   const reply = new Comment({
     content: content,
@@ -43,8 +43,9 @@ exports.updateReply = async (
   downVote = false
 ) => {
   const reply = await this.getReply(replyId);
-  // add user validation
-
+  if (!upVote && !downVote){
+    userValidation(userId, reply.creator)
+  }
   reply.content = content;
   if (upVote) {
     reply.upVotes += 1;
@@ -55,8 +56,8 @@ exports.updateReply = async (
   return reply.save();
 };
 
-exports.deleteReply = async (replyId) => {
+exports.deleteReply = async (replyId, userId) => {
   await this.getReply(replyId);
-  // add user verification
+  userValidation(userId, reply.creator);
   return Comment.deleteOne({ _id: replyId });
 };

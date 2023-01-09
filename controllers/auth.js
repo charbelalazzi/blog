@@ -2,6 +2,7 @@ const bcrypt = require("bcrypt");
 const User = require("../users/users.model");
 const jwt = require("jsonwebtoken");
 const { authSchema } = require("../helper/validation_schema");
+const config = require("../config");
 
 exports.signup = async (req, res, next) => {
   try {
@@ -37,7 +38,6 @@ exports.login = async (req, res, next) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email: email });
-    console.log(user);
     if (!user) {
       const error = new Error("A user with this email could not be found");
       error.statusCode = 401;
@@ -51,10 +51,9 @@ exports.login = async (req, res, next) => {
     }
     const token = jwt.sign(
       {
-        email: user.email,
         userId: user._id.toString(),
       },
-      "somesupersecretsecret",
+      `${config.app.secret}`,
       { expiresIn: "1h" }
     );
     res.status(200).json({

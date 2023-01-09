@@ -72,6 +72,7 @@ app.use((error, req, res, next) => {
 });
 
 mongoose
+  .set('strictQuery', false)
   .connect(`mongodb://${config.mongo.host}:${config.mongo.port}/${config.mongo.name}`)
   .then((result) => {
     app.listen(config.app.port);

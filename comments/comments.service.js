@@ -1,6 +1,6 @@
-const Post = require("../posts/posts.model");
 const Comment = require("./comments.model");
 const { getOnePost } = require('../posts/posts.service')
+const {userValidation} = require('../helper/helping_functions')
 
 
 exports.getComment = async (commentId) => {
@@ -33,8 +33,9 @@ exports.postComment = async (postId, userId, content) => {
 
 exports.updateComment = async (commentId, userId, content, upVote = false, downVote = false) => {
   const comment = await this.getComment(commentId)
-// add user validation
-
+  if (!upVote && !downVote){
+    userValidation(userId, comment.creator)
+  }
   comment.content = content;
   if (upVote) {
     comment.upVotes += 1;
@@ -45,9 +46,9 @@ exports.updateComment = async (commentId, userId, content, upVote = false, downV
   return comment.save();
 };
 
-exports.deleteComment = async (commentId) => {
+exports.deleteComment = async (commentId, userId) => {
   const comment = await this.getComment(commentId)
-// add user verification
+  userValidation(userId, comment.creator)
   return Comment.deleteOne({_id:commentId});
 };
 
